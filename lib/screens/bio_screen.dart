@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/bio_service.dart';
 
 class BiometricScreen extends StatefulWidget {
@@ -44,6 +45,9 @@ class _BiometricScreenState extends State<BiometricScreen> {
 
     final ok = await _bio.authenticate();
     if (ok) {
+      try {
+        await SystemSound.play(SystemSoundType.click);
+      } catch (_) {}
       await _bio.setFirstLaunchComplete();
       if (mounted) widget.onSuccess();
     } else {
