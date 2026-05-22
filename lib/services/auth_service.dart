@@ -1,6 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/user_profile.dart';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -10,60 +9,61 @@ class AuthService {
 
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  Future<UserProfile?> signInWithEmailAndPassword(String email, String password) async {
-    final userCredential = await _auth.signInWithEmailAndPassword(
+  Future<Map<String, dynamic>?> login(String email, String password) async {
+    final cred = await _auth.signInWithEmailAndPassword(
       email: email,
       password: password,
     );
-    if (userCredential.user != null) {
-      return await getUserProfile(userCredential.user!.uid);
-    }
-    return null;
+    final doc = await _firestore.collection('users').doc(cred.user!.uid).get();
+    return doc.exists ? doc.data() : null;
   }
 
-  Future<UserProfile?> registerWithEmailAndPassword({
+  Future<void> register({
     required String email,
     required String password,
     required String firstName,
     required String lastName,
-    required DateTime dateOfBirth,
+    required DateTime birthDate,
+    required String phoneNumber,
   }) async {
-    if (dateOfBirth.difference(DateTime.now()).inDays ~/ 365 > -13) {
-      throw Exception('You must be at least 13 years old to register');
-    }
+    final age = calculateAge(birthDate);
+    if (age < 13) throw 'You must be at least 13 years old';
 
-    final userCredential = await _auth.createUserWithEmailAndPassword(
+    final cred = await _auth.createUserWithEmailAndPassword(
       email: email,
       password: password,
     );
 
-    final profile = UserProfile(
-      uid: userCredential.user!.uid,
-      firstName: firstName,
-      lastName: lastName,
-      dateOfBirth: dateOfBirth,
-      email: email,
-      createdAt: DateTime.now(),
-    );
-
-    await _firestore.collection('users').doc(userCredential.user!.uid).set(profile.toMap());
-
-    return profile;
+    await _firestore.collection('users').doc(cred.user!.uid).set({
+      'firstName': firstName,
+      'lastName': lastName,
+      'email': email,
+      'birthDate': Timestamp.fromDate(birthDate),
+      'phone': phoneNumber,
+      'createdAt': Timestamp.now(),
+    });
   }
 
   Future<void> resetPassword(String email) async {
     await _auth.sendPasswordResetEmail(email: email);
   }
 
-  Future<void> signOut() async {
+  Future<void> logout() async {
     await _auth.signOut();
   }
 
-  Future<UserProfile?> getUserProfile(String uid) async {
+  Future<Map<String, dynamic>?> getUserData(String uid) async {
     final doc = await _firestore.collection('users').doc(uid).get();
-    if (doc.exists) {
-      return UserProfile.fromMap(doc.data()!, uid);
+    return doc.exists ? doc.data() : null;
+  }
+
+  int calculateAge(DateTime birth) {
+    final now = DateTime.now();
+    int age = now.year - birth.year;
+    if (now.month < birth.month ||
+        (now.month == birth.month && now.day < birth.day)) {
+      age--;
     }
-    return null;
+    return age;
   }
 }

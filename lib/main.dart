@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'screens/biometric_screen.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'services/auth_service.dart';
+import 'services/bio_service.dart';
+import 'screens/bio_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
-import 'services/auth_service.dart';
-import 'models/user_profile.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
+  if (!kIsWeb) {
+    await Firebase.initializeApp();
+  }
   runApp(const QuranPlayerApp());
 }
 
@@ -21,94 +24,81 @@ class QuranPlayerApp extends StatelessWidget {
       title: 'Quran Player',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.teal,
-          brightness: Brightness.light,
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF0D47A1)),
         useMaterial3: true,
-        appBarTheme: const AppBarTheme(
-          centerTitle: true,
-          elevation: 0,
-        ),
+        appBarTheme: const AppBarTheme(centerTitle: true, elevation: 0),
       ),
-      darkTheme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.teal,
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-      ),
-      themeMode: ThemeMode.system,
-      home: const AuthenticationFlow(),
+      home: const AppFlow(),
     );
   }
 }
 
-class AuthenticationFlow extends StatefulWidget {
-  const AuthenticationFlow({super.key});
+class AppFlow extends StatefulWidget {
+  const AppFlow({super.key});
 
   @override
-  State<AuthenticationFlow> createState() => _AuthenticationFlowState();
+  State<AppFlow> createState() => _AppFlowState();
 }
 
-class _AuthenticationFlowState extends State<AuthenticationFlow> {
-  final AuthService _authService = AuthService();
-  bool _showBiometric = true;
-  bool _biometricDone = false;
+class _AppFlowState extends State<AppFlow> {
+  final AuthService? _auth = kIsWeb ? null : AuthService();
+  final BioService? _bio = kIsWeb ? null : BioService();
+  bool _showBio = false;
+  bool _showLogin = false;
+  Map<String, dynamic>? _userData;
+  bool _loggedIn = false;
 
   @override
   void initState() {
     super.initState();
-    _authService.authStateChanges.listen((user) {
-      if (_biometricDone && mounted) {
-        setState(() {});
-      }
-    });
+    if (kIsWeb) {
+      setState(() {
+        _showBio = false;
+        _showLogin = true;
+      });
+      return;
+    }
+    _checkLogin();
   }
 
-  void _onLoginSuccess(UserProfile profile) {
-    if (mounted) {
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(
-          builder: (context) => HomeScreen(userProfile: profile),
-        ),
-        (route) => false,
-      );
+  Future<void> _checkLogin() async {
+    final isFirst = await _bio!.isFirstLaunch();
+    if (!isFirst) {
+      setState(() => _showBio = false);
     }
+
+    final user = _auth!.currentUser;
+    if (user != null) {
+      final data = await _auth!.getUserData(user.uid);
+      if (data != null) {
+        setState(() { _userData = data; _loggedIn = true; _showBio = false; _showLogin = false; });
+      }
+    }
+  }
+
+  void _onBioSuccess() {
+    if (_loggedIn) return;
+    setState(() { _showBio = false; _showLogin = true; });
+  }
+
+  void _onLogin(Map<String, dynamic> data) {
+    setState(() { _userData = data; _loggedIn = true; _showLogin = false; });
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_showBiometric) {
-      return BiometricScreen(
-        onSuccess: () {
-          setState(() {
-            _showBiometric = false;
-            _biometricDone = true;
-          });
-        },
-      );
+    if (_showBio) {
+      return BiometricScreen(onSuccess: _onBioSuccess);
     }
 
-    return FutureBuilder(
-      future: _authService.currentUser != null
-          ? _authService.getUserProfile(_authService.currentUser!.uid)
-          : Future.value(null),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
+    if (_showLogin) {
+      return LoginScreen(onLogin: _onLogin);
+    }
 
-        final profile = snapshot.data as UserProfile?;
+    if (_loggedIn && _userData != null) {
+      return HomeScreen(userData: _userData!);
+    }
 
-        if (profile != null) {
-          return HomeScreen(userProfile: profile);
-        }
-
-        return LoginScreen(onLoginSuccess: _onLoginSuccess);
-      },
-    );
+    return const Scaffold(body: Center(child: CircularProgressIndicator()));
   }
 }
