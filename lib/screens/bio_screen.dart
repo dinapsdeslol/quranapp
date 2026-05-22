@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart';
 import '../services/bio_service.dart';
 
 class BiometricScreen extends StatefulWidget {
@@ -45,12 +44,6 @@ class _BiometricScreenState extends State<BiometricScreen> {
 
     final ok = await _bio.authenticate();
     if (ok) {
-      try {
-        final p = AudioPlayer();
-        await p.play(AssetSource('sounds/success.mp3'));
-        await Future.delayed(const Duration(milliseconds: 500));
-        await p.dispose();
-      } catch (e) {}
       await _bio.setFirstLaunchComplete();
       if (mounted) widget.onSuccess();
     } else {
