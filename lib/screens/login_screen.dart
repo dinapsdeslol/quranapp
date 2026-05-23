@@ -19,6 +19,18 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loading = false;
   String _error = '';
 
+  @override
+  void initState() {
+    super.initState();
+    _tryAutoLogin();
+  }
+
+  Future<void> _tryAutoLogin() async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
+    widget.onLogin({'firstName': 'Demo', 'lastName': 'User', 'email': 'demo@quran.app'});
+  }
+
   Future<void> _login() async {
     if (!_form.currentState!.validate()) return;
     setState(() { _loading = true; _error = ''; });
