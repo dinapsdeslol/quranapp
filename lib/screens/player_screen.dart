@@ -32,15 +32,18 @@ class _PlayerScreenState extends State<PlayerScreen> {
   void initState() {
     super.initState();
     _loadCategories();
+    _loadFavIds();
     _audio.player.onPositionChanged.listen((p) { if (mounted) setState(() => _pos = p); });
     _audio.player.onDurationChanged.listen((d) { if (mounted) setState(() => _dur = d); });
     _audio.player.onPlayerComplete.listen((_) { if (mounted) setState(() => _playing = false); });
   }
 
-  @override
-  void dispose() {
-    _audio.dispose();
-    super.dispose();
+  Future<void> _loadFavIds() async {
+    if (kIsWeb) return;
+    try {
+      final favs = await _fav!.stream().first;
+      if (mounted) setState(() => _favIds = favs.map((t) => t.id).toSet());
+    } catch (_) {}
   }
 
   Future<void> _loadCategories() async {
@@ -58,8 +61,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
       ayahNumber: 0,
       audioUrl: url,
     );
+    setState(() { _pos = Duration.zero; _dur = Duration.zero; _playing = true; });
     await _audio.playTrack(track);
-    if (mounted) setState(() => _playing = true);
   }
 
   Future<void> _togglePlay() async {

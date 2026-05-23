@@ -36,7 +36,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     }
 
     return StreamBuilder(
-      stream: _fav!.stream(),
+      stream: _fav!.stream().timeout(const Duration(seconds: 10), onTimeout: (sink) => sink.add([])),
       builder: (_, snap) {
         if (snap.connectionState == ConnectionState.waiting) return const Center(child: CircularProgressIndicator());
         if (snap.hasError) return Center(child: Text('Error: ${snap.error}'));
@@ -71,7 +71,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     final ok = await _bio!.requireAuthForDelete();
     if (ok && mounted) {
       await _fav!.remove(t.id);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Removed from favorites')));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Removed from favorites')));
     }
   }
 }
