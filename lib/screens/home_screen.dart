@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../services/auth_service.dart';
+import '../services/audio_service.dart';
 import 'login_screen.dart';
 import 'stats_screen.dart';
 import 'player_screen.dart';
@@ -16,16 +17,17 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _idx = 0;
-  late List<Widget> _pages;
+  final AudioService _audio = AudioService();
 
   @override
   void initState() {
     super.initState();
-    _pages = [
-      StatsScreen(userData: widget.userData),
-      const PlayerScreen(),
-      const FavoritesScreen(),
-    ];
+  }
+
+  @override
+  void dispose() {
+    _audio.dispose();
+    super.dispose();
   }
 
   Future<void> _logout() async {
@@ -45,7 +47,14 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _pages[_idx],
+      body: IndexedStack(
+        index: _idx,
+        children: [
+          StatsScreen(userData: widget.userData),
+          PlayerScreen(audio: _audio),
+          FavoritesScreen(audio: _audio),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _idx,
         onDestinationSelected: (i) => setState(() => _idx = i),

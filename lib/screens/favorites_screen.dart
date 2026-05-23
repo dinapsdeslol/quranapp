@@ -6,7 +6,8 @@ import '../services/bio_service.dart';
 import '../models/track_model.dart';
 
 class FavoritesScreen extends StatefulWidget {
-  const FavoritesScreen({super.key});
+  final AudioService audio;
+  const FavoritesScreen({super.key, required this.audio});
 
   @override
   State<FavoritesScreen> createState() => _FavoritesScreenState();
@@ -14,7 +15,7 @@ class FavoritesScreen extends StatefulWidget {
 
 class _FavoritesScreenState extends State<FavoritesScreen> {
   final FavoriteService? _fav = kIsWeb ? null : FavoriteService();
-  final AudioService _audio = AudioService();
+  late final AudioService _audio = widget.audio;
   final BioService? _bio = kIsWeb ? null : BioService();
 
   @override

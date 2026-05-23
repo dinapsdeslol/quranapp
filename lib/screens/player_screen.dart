@@ -7,7 +7,8 @@ import '../services/bio_service.dart';
 import '../models/track_model.dart';
 
 class PlayerScreen extends StatefulWidget {
-  const PlayerScreen({super.key});
+  final AudioService audio;
+  const PlayerScreen({super.key, required this.audio});
 
   @override
   State<PlayerScreen> createState() => _PlayerScreenState();
@@ -15,7 +16,7 @@ class PlayerScreen extends StatefulWidget {
 
 class _PlayerScreenState extends State<PlayerScreen> {
   final QuranApiService _api = QuranApiService();
-  final AudioService _audio = AudioService();
+  late final AudioService _audio = widget.audio;
   final FavoriteService? _fav = kIsWeb ? null : FavoriteService();
   final BioService? _bio = kIsWeb ? null : BioService();
 
