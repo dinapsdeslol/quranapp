@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart' show PlayerState;
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../services/api_service.dart';
 import '../services/audio_service.dart';
@@ -23,8 +23,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   List<SurahCategory> _categories = [];
   bool _loading = true;
-  Duration _pos = Duration.zero;
-  Duration _dur = Duration.zero;
+  double _posSec = 0;
+  double _durSec = 0;
   bool _playing = false;
   bool _repeat = false;
   Set<String> _favIds = {};
@@ -35,11 +35,20 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _loadCategories();
     _loadFavIds();
     _audio.player.onPositionChanged.listen((p) {
-      if (mounted && p <= _dur) setState(() => _pos = p);
+      if (!mounted) return;
+      final s = p.inMilliseconds / 1000.0;
+      if (s <= _durSec || _durSec == 0) setState(() => _posSec = s);
     });
-    _audio.player.onDurationChanged.listen((d) { if (mounted) setState(() => _dur = d); });
-    _audio.player.onPlayerComplete.listen((_) { if (mounted) setState(() => _playing = false); });
-    _audio.player.onPlayerStateChanged.listen((s) { if (mounted && s == PlayerState.stopped) setState(() { _playing = false; _pos = Duration.zero; }); });
+    _audio.player.onDurationChanged.listen((d) {
+      if (mounted) setState(() => _durSec = d.inMilliseconds / 1000.0);
+    });
+    _audio.player.onPlayerComplete.listen((_) {
+      if (mounted) setState(() => _playing = false);
+    });
+    _audio.player.onPlayerStateChanged.listen((s) {
+      if (!mounted) return;
+      if (s == PlayerState.stopped) setState(() { _playing = false; _posSec = 0; });
+    });
   }
 
   @override
@@ -70,7 +79,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
       ayahNumber: 0,
       audioUrl: url,
     );
-    setState(() { _pos = Duration.zero; _dur = Duration.zero; _playing = true; });
+    setState(() { _posSec = 0; _durSec = 0; _playing = true; });
     try {
       await _audio.playTrack(track);
     } catch (_) {
@@ -98,7 +107,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
     }
   }
 
-  String _fmt(Duration d) {
+  String _fmt(double sec) {
+    final d = Duration(milliseconds: (sec * 1000).round());
     final m = d.inMinutes;
     final s = d.inSeconds % 60;
     return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
@@ -118,6 +128,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   Widget _buildPlayer() {
     final t = _audio.currentTrack!;
+    final maxVal = _durSec > 0 ? _durSec : 1.0;
+    final sliderVal = _posSec.clamp(0.0, maxVal);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: const BoxDecoration(
@@ -133,7 +145,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(t.surahEnglishName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white), maxLines: 1, overflow: TextOverflow.ellipsis),
-                    Text('Ayah ${t.ayahNumber}', style: const TextStyle(fontSize: 13, color: Colors.white70)),
+                    const Text('Full Surah', style: TextStyle(fontSize: 13, color: Colors.white70)),
                   ],
                 ),
               ),
@@ -143,17 +155,17 @@ class _PlayerScreenState extends State<PlayerScreen> {
               ),
             ],
           ),
-          Slider(value: _pos.inSeconds.toDouble(), max: _dur.inSeconds.toDouble().clamp(1, double.infinity), onChanged: (v) => _audio.seek(Duration(seconds: v.toInt())), activeColor: Colors.white, inactiveColor: Colors.white30),
+          Slider(value: sliderVal, max: maxVal, onChanged: (v) => _audio.seek(Duration(milliseconds: (v * 1000).round())), activeColor: Colors.white, inactiveColor: Colors.white30),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(_fmt(_pos), style: const TextStyle(color: Colors.white70, fontSize: 12)), Text(_fmt(_dur), style: const TextStyle(color: Colors.white70, fontSize: 12))]),
+            child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(_fmt(_posSec), style: const TextStyle(color: Colors.white70, fontSize: 12)), Text(_fmt(_durSec), style: const TextStyle(color: Colors.white70, fontSize: 12))]),
           ),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               IconButton(icon: Icon(_repeat ? Icons.repeat_one : Icons.repeat, color: _repeat ? Colors.yellow : Colors.white), onPressed: () async { await _audio.toggleRepeat(); if (mounted) setState(() => _repeat = _audio.isRepeat); }),
               IconButton(icon: Icon(_playing ? Icons.pause : Icons.play_arrow, size: 40, color: Colors.white), onPressed: _togglePlay),
-              IconButton(icon: const Icon(Icons.stop, color: Colors.white), onPressed: () async { await _audio.stop(); if (mounted) setState(() { _playing = false; _pos = Duration.zero; }); }),
+              IconButton(icon: const Icon(Icons.stop, color: Colors.white), onPressed: () async { await _audio.stop(); if (mounted) setState(() { _playing = false; _posSec = 0; }); }),
             ],
           ),
         ],
