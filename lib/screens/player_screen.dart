@@ -40,6 +40,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _audio.player.onPlayerStateChanged.listen((s) { if (mounted && s == PlayerState.stopped) setState(() { _playing = false; _pos = Duration.zero; }); });
   }
 
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
   Future<void> _loadFavIds() async {
     if (kIsWeb) return;
     try {
