@@ -20,12 +20,14 @@ class SurahCategory {
   final String id;
   final String name;
   final String englishName;
+  final String? audioUrl;
   final List<AudioTrack> tracks;
 
   SurahCategory({
     required this.id,
     required this.name,
     required this.englishName,
-    required this.tracks,
+    this.audioUrl,
+    this.tracks = const [],
   });
 }

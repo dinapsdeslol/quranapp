@@ -63,8 +63,9 @@ class _AppFlowState extends State<AppFlow> {
 
   Future<void> _checkLogin() async {
     final isFirst = await _bio!.isFirstLaunch();
-    if (!isFirst) {
-      setState(() => _showBio = false);
+    if (isFirst) {
+      setState(() => _showBio = true);
+      return;
     }
 
     final user = _auth!.currentUser;

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../services/api_service.dart';
 import '../services/audio_service.dart';
@@ -48,8 +47,17 @@ class _PlayerScreenState extends State<PlayerScreen> {
     if (mounted) setState(() { _categories = cats; _loading = false; });
   }
 
-  Future<void> _play(AudioTrack t) async {
-    await _audio.playTrack(t);
+  Future<void> _playSurah(SurahCategory cat) async {
+    final url = cat.audioUrl;
+    if (url == null || url.isEmpty) return;
+    final track = AudioTrack(
+      id: cat.id,
+      surahName: cat.name,
+      surahEnglishName: cat.englishName,
+      ayahNumber: 0,
+      audioUrl: url,
+    );
+    await _audio.playTrack(track);
     if (mounted) setState(() => _playing = true);
   }
 
@@ -141,22 +149,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
       itemCount: _categories.length,
       itemBuilder: (_, i) {
         final cat = _categories[i];
-        return FutureBuilder<List<AudioTrack>>(
-          future: _api.getTracks(cat.id),
-          builder: (_, snap) {
-            final tracks = snap.data ?? [];
-            return ExpansionTile(
-              leading: CircleAvatar(backgroundColor: Colors.blue.shade100, child: Text('${i + 1}', style: TextStyle(color: Colors.blue.shade700))),
-              title: Text(cat.englishName, style: const TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text('${cat.name} - ${tracks.length} ayahs'),
-              children: tracks.map((t) => ListTile(
-                leading: Icon(Icons.audiotrack, color: _audio.currentTrack?.id == t.id ? Colors.blue : Colors.grey),
-                title: Text('Ayah ${t.ayahNumber}', style: TextStyle(color: _audio.currentTrack?.id == t.id ? Colors.blue : null, fontWeight: _audio.currentTrack?.id == t.id ? FontWeight.bold : null)),
-                trailing: IconButton(icon: Icon(Icons.play_arrow, color: _audio.currentTrack?.id == t.id ? Colors.blue : null), onPressed: () => _play(t)),
-                onTap: () => _play(t),
-              )).toList(),
-            );
-          },
+        final isCurrent = _audio.currentTrack?.id == cat.id;
+        return ListTile(
+          leading: CircleAvatar(
+            backgroundColor: isCurrent ? Colors.blue : Colors.blue.shade100,
+            child: Text('${i + 1}', style: TextStyle(color: isCurrent ? Colors.white : Colors.blue.shade700)),
+          ),
+          title: Text(cat.englishName, style: TextStyle(fontWeight: FontWeight.bold, color: isCurrent ? Colors.blue : null)),
+          subtitle: Text(cat.name, style: TextStyle(color: isCurrent ? Colors.blue.shade300 : Colors.grey)),
+          trailing: Icon(isCurrent ? Icons.play_arrow : Icons.play_circle_outline, color: isCurrent ? Colors.blue : null),
+          onTap: () => _playSurah(cat),
         );
       },
     );

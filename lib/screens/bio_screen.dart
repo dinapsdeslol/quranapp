@@ -134,7 +134,7 @@ class _BiometricScreenState extends State<BiometricScreen> {
                       ),
                     ),
                   const SizedBox(height: 12),
-                  if (!_hasBio)
+                  if (!_hasBio) ...[
                     ElevatedButton.icon(
                       onPressed: _goSettings,
                       icon: const Icon(Icons.settings),
@@ -146,6 +146,22 @@ class _BiometricScreenState extends State<BiometricScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        _bio.setFirstLaunchComplete();
+                        widget.onSuccess();
+                      },
+                      icon: const Icon(Icons.skip_next),
+                      label: const Text('Skip'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.white24,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
