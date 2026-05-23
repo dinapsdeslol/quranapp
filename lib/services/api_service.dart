@@ -7,7 +7,7 @@ class QuranApiService {
 
   String _audioUrl(String id) {
     final padded = id.padLeft(3, '0');
-    return 'https://download.quranicaudio.com/quran/yasser_ad-dussary/$padded.mp3';
+    return 'https://server8.mp3quran.net/afs/$padded.mp3';
   }
 
   Future<List<SurahCategory>> getCategories() async {

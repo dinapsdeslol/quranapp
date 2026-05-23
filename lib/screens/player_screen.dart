@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:audioplayers/audioplayers.dart' show PlayerState;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import '../services/api_service.dart';
 import '../services/audio_service.dart';
@@ -36,6 +37,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _audio.player.onPositionChanged.listen((p) { if (mounted) setState(() => _pos = p); });
     _audio.player.onDurationChanged.listen((d) { if (mounted) setState(() => _dur = d); });
     _audio.player.onPlayerComplete.listen((_) { if (mounted) setState(() => _playing = false); });
+    _audio.player.onPlayerStateChanged.listen((s) { if (mounted && s == PlayerState.stopped) setState(() { _playing = false; _pos = Duration.zero; }); });
   }
 
   Future<void> _loadFavIds() async {
@@ -62,7 +64,11 @@ class _PlayerScreenState extends State<PlayerScreen> {
       audioUrl: url,
     );
     setState(() { _pos = Duration.zero; _dur = Duration.zero; _playing = true; });
-    await _audio.playTrack(track);
+    try {
+      await _audio.playTrack(track);
+    } catch (_) {
+      if (mounted) setState(() => _playing = false);
+    }
   }
 
   Future<void> _togglePlay() async {
