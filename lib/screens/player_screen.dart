@@ -34,7 +34,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
     super.initState();
     _loadCategories();
     _loadFavIds();
-    _audio.player.onPositionChanged.listen((p) { if (mounted) setState(() => _pos = p); });
+    _audio.player.onPositionChanged.listen((p) {
+      if (mounted && p <= _dur) setState(() => _pos = p);
+    });
     _audio.player.onDurationChanged.listen((d) { if (mounted) setState(() => _dur = d); });
     _audio.player.onPlayerComplete.listen((_) { if (mounted) setState(() => _playing = false); });
     _audio.player.onPlayerStateChanged.listen((s) { if (mounted && s == PlayerState.stopped) setState(() { _playing = false; _pos = Duration.zero; }); });

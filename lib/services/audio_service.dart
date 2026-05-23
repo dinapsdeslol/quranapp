@@ -16,6 +16,7 @@ class AudioService {
   Future<void> playTrack(AudioTrack track) async {
     _currentTrack = track;
     try {
+      await _player.stop();
       await _player.setSourceUrl(track.audioUrl);
       await _player.resume();
       await _recordListening();
