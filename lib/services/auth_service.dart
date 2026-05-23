@@ -10,12 +10,22 @@ class AuthService {
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
   Future<Map<String, dynamic>?> login(String email, String password) async {
-    final cred = await _auth.signInWithEmailAndPassword(
-      email: email,
-      password: password,
-    );
-    final doc = await _firestore.collection('users').doc(cred.user!.uid).get();
-    return doc.exists ? doc.data() : null;
+    try {
+      final cred = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      try {
+        final doc = await _firestore.collection('users').doc(cred.user!.uid).get();
+        if (doc.exists) return doc.data();
+      } catch (_) {}
+      if (cred.user != null) {
+        return {'firstName': email.split('@').first, 'lastName': '', 'email': email};
+      }
+      return null;
+    } catch (e) {
+      rethrow;
+    }
   }
 
   Future<void> register({

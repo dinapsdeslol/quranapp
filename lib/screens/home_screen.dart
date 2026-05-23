@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../services/auth_service.dart';
 import '../services/audio_service.dart';
-import 'login_screen.dart';
+import '../main.dart';
 import 'stats_screen.dart';
 import 'player_screen.dart';
 import 'favorites_screen.dart';
@@ -32,14 +33,38 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _logout() async {
     if (kIsWeb) {
-      if (mounted) Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => LoginScreen(onLogin: (_) {})), (r) => false);
+      if (mounted) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const AppFlow()),
+          (r) => false,
+        );
+      }
       return;
     }
-    final ok = await showDialog<bool>(context: context, builder: (_) => AlertDialog(title: const Text('Logout'), content: const Text('Are you sure?'), actions: [TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')), TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Logout'))]));
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Logout')),
+        ],
+      ),
+    );
     if (ok == true) {
+      final prefs = await SharedPreferences.getInstance();
+      for (final k in prefs.getKeys().toList()) {
+        if (k.startsWith('listen_') || k.startsWith('tracks_') || k == 'goal_hours') {
+          await prefs.remove(k);
+        }
+      }
       await AuthService().logout();
       if (mounted) {
-        Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => LoginScreen(onLogin: (_) {})), (r) => false);
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const AppFlow()),
+          (r) => false,
+        );
       }
     }
   }

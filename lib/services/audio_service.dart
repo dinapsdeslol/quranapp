@@ -19,8 +19,9 @@ class AudioService {
       await _player.stop();
       await _player.play(UrlSource(track.audioUrl));
       await _recordListening();
-    } catch (_) {
+    } catch (e) {
       _currentTrack = null;
+      rethrow;
     }
   }
 

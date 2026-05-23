@@ -19,9 +19,15 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   late final AudioService _audio = widget.audio;
   final BioService? _bio = kIsWeb ? null : BioService();
 
-  void _play(AudioTrack t) {
-    _audio.playTrack(t);
-    widget.onPlay?.call();
+  Future<void> _play(AudioTrack t) async {
+    try {
+      await _audio.playTrack(t);
+      widget.onPlay?.call();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Play error: $e')));
+      }
+    }
   }
 
   @override
@@ -73,13 +79,24 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   }
 
   Future<void> _delete(AudioTrack t) async {
-    if (_bio == null) return;
-    final avail = await _bio!.isBiometricAvailable();
-    if (avail) {
-      final ok = await _bio!.requireAuthForDelete();
-      if (!ok) return;
+    try {
+      if (_bio == null) return;
+      final avail = await _bio!.isBiometricAvailable();
+      if (avail) {
+        final ok = await _bio!.requireAuthForDelete();
+        if (!ok) return;
+      }
+      await _fav!.remove(t.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Removed from favorites')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Delete error: $e'),
+          backgroundColor: Colors.red,
+        ));
+      }
     }
-    await _fav!.remove(t.id);
-    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Removed from favorites')));
   }
 }

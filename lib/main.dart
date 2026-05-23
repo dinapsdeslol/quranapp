@@ -73,8 +73,11 @@ class _AppFlowState extends State<AppFlow> {
       final data = await _auth!.getUserData(user.uid);
       if (data != null) {
         setState(() { _userData = data; _loggedIn = true; _showBio = false; _showLogin = false; });
+        return;
       }
     }
+
+    setState(() => _showLogin = true);
   }
 
   void _onBioSuccess() {
