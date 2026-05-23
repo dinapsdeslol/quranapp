@@ -7,7 +7,8 @@ import '../models/track_model.dart';
 
 class FavoritesScreen extends StatefulWidget {
   final AudioService audio;
-  const FavoritesScreen({super.key, required this.audio});
+  final VoidCallback? onPlay;
+  const FavoritesScreen({super.key, required this.audio, this.onPlay});
 
   @override
   State<FavoritesScreen> createState() => _FavoritesScreenState();
@@ -17,6 +18,11 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   final FavoriteService? _fav = kIsWeb ? null : FavoriteService();
   late final AudioService _audio = widget.audio;
   final BioService? _bio = kIsWeb ? null : BioService();
+
+  void _play(AudioTrack t) {
+    _audio.playTrack(t);
+    widget.onPlay?.call();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,7 +62,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
               title: Text(t.title, style: const TextStyle(fontWeight: FontWeight.bold)),
               subtitle: Text(t.surahName),
               trailing: Row(mainAxisSize: MainAxisSize.min, children: [
-                IconButton(icon: const Icon(Icons.play_arrow), onPressed: () => _audio.playTrack(t)),
+                IconButton(icon: const Icon(Icons.play_arrow), onPressed: () => _play(t)),
                 IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _delete(t)),
               ]),
             );
@@ -68,10 +74,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
   Future<void> _delete(AudioTrack t) async {
     if (_bio == null) return;
-    final ok = await _bio!.requireAuthForDelete();
-    if (ok && mounted) {
-      await _fav!.remove(t.id);
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Removed from favorites')));
+    final avail = await _bio!.isBiometricAvailable();
+    if (avail) {
+      final ok = await _bio!.requireAuthForDelete();
+      if (!ok) return;
     }
+    await _fav!.remove(t.id);
+    if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Removed from favorites')));
   }
 }

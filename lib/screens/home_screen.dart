@@ -52,7 +52,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           StatsScreen(userData: widget.userData),
           PlayerScreen(audio: _audio),
-          FavoritesScreen(audio: _audio),
+          FavoritesScreen(audio: _audio, onPlay: () => setState(() => _idx = 1)),
         ],
       ),
       bottomNavigationBar: NavigationBar(
